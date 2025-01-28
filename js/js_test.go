@@ -186,20 +186,21 @@ func TestJS(t *testing.T) {
 		{`x=false`, `x=!1`},
 		{`x=false()`, `x=(!1)()`},
 		{`false`, `!1`},
-		{`x=undefined`, `x=void 0`},
-		{`x=undefined()`, `x=(void 0)()`},
-		{`x=undefined.a`, `x=(void 0).a`},
-		//{`{const undefined=5;x=undefined}`, `{const undefined=5;x=undefined}`},
+		{`x=void 0`, `x=0[0]`},
+		{`x=undefined`, `x=0[0]`},
+		{`x=undefined()`, `x=0[0]()`},
+		{`x=undefined.a`, `x=0[0].a`},
+		{`{const undefined=5;x=undefined}`, `{const undefined=5;x=undefined}`},
 		{`x=Infinity`, `x=1/0`},
 		{`x=Infinity()`, `x=(1/0)()`},
 		{`x=2**Infinity`, `x=2**(1/0)`},
-		//{`{const Infinity=5;x=Infinity}`, `{const Infinity=5;x=Infinity}`},
+		{`{const Infinity=5;x=Infinity}`, `{const Infinity=5;x=Infinity}`},
 		{`!""`, `!0`},
 		{`!"foobar"`, `!1`},
-		{`class a extends undefined {}`, `class a extends(void 0){}`},
+		{`class a extends undefined {}`, `class a extends 0[0]{}`},
 		{`new true`, `new(!0)`},
 		{`function*a(){yield undefined}`, `function*a(){yield}`},
-		{`function*a(){yield*undefined}`, `function*a(){yield*void 0}`},
+		{`function*a(){yield*undefined}`, `function*a(){yield*0[0]}`},
 
 		// if/else statements
 		{`function f(){if(a){return b}}`, `function f(){if(a)return b}`},
@@ -678,8 +679,8 @@ func TestJS(t *testing.T) {
 		{`a=obj["3name"]`, `a=obj["3name"]`},
 		{"a=b`tmpl${a?b:b}tmpl`", "a=b`tmpl${a,b}tmpl`"},
 		{`a=b?.[c]`, `a=b?.[c]`},
-		{`a=b?.["c"]`, `a=b?.c`},         // Issue 757
-		{`a=b?.["c d"]`, `a=b?.["c d"]`}, // Issue 757
+		{`a=b?.["c"]`, `a=b?.c`},         // #757
+		{`a=b?.["c d"]`, `a=b?.["c d"]`}, // #757
 		{`a=b.#c`, `a=b.#c`},
 		{`a=b().#c`, `a=b().#c`},
 		{`a=b?.#c`, `a=b?.#c`},
@@ -687,6 +688,13 @@ func TestJS(t *testing.T) {
 		{`a(b,...c)`, `a(b,...c)`},
 		{`let a="string";a`, `let a="string";a`},
 		{`f((a,b)||d)`, `f((a,b)||d)`},
+
+		// math functions, see #790
+		{`Math.abs(x)`, `x<0?-x:x`},
+		{`Math.trunc(x)`, `x|0`},
+		{`Math.pow(a,b)`, `a**b`},
+		{`isNaN(x)`, `x!=x`},
+		{`Number(x)`, `+x`},
 
 		// merge expressions
 		{`function f(){b=5;return a+b}`, `function f(){return b=5,a+b}`},
