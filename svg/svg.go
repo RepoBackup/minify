@@ -14,14 +14,15 @@ import (
 )
 
 var (
-	voidBytes     = []byte("/>")
-	isBytes       = []byte("=")
-	spaceBytes    = []byte(" ")
-	cdataEndBytes = []byte("]]>")
-	zeroBytes     = []byte("0")
-	cssMimeBytes  = []byte("text/css")
-	noneBytes     = []byte("none")
-	urlBytes      = []byte("url(")
+	voidBytes        = []byte("/>")
+	isBytes          = []byte("=")
+	spaceBytes       = []byte(" ")
+	cdataEndBytes    = []byte("]]>")
+	zeroBytes        = []byte("0")
+	svgStartTagBytes = []byte("<svg")
+	cssMimeBytes     = []byte("text/css")
+	noneBytes        = []byte("none")
+	urlBytes         = []byte("url(")
 )
 
 ////////////////////////////////////////////////////////////////
@@ -52,6 +53,9 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, params map[stri
 	if !o.Inline {
 		o.Inline = params != nil && params["inline"] == "1"
 	}
+
+	// namespaces to keep
+	namespaces := []Hash{Xlink}
 
 	var tag Hash
 	defaultStyleType := cssMimeBytes
@@ -129,9 +133,23 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, params map[stri
 			tag = t.Hash
 			if tag == Metadata {
 				t.Data = nil
-			} else if colon := bytes.IndexByte(t.Text, ':'); colon != -1 || t.Data == nil {
-				// skip attributes in namespace (eg. inkscape or sodipodi)
-				t.Data = nil
+			} else if colon := bytes.IndexByte(t.Text, ':'); colon != -1 {
+				prefix := ToHash(t.Text[:colon])
+				if prefix == Svg {
+					t.Data = append(t.Data[:1], t.Data[5:]...)
+				} else {
+					// skip attributes in namespace (eg. inkscape or sodipodi)
+					keep := false
+					for _, ns := range namespaces {
+						if prefix == ns {
+							keep = true
+							break
+						}
+					}
+					if !keep {
+						t.Data = nil
+					}
+				}
 			} else if tag == Defs && tb.Peek(1).TokenType == xml.StartTagCloseVoidToken {
 				// skip empty tags
 				t.Data = nil
@@ -167,7 +185,17 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, params map[stri
 
 			// skip attributes in namespace (eg. inkscape or sodipodi)
 			if colon := bytes.IndexByte(t.Text, ':'); colon != -1 {
-				continue
+				keep := false
+				prefix, name := ToHash(t.Text[:colon]), ToHash(t.Text[colon+1:])
+				for _, ns := range namespaces {
+					if prefix == ns || tag == Svg && prefix == Xmlns && name == ns {
+						keep = true
+						break
+					}
+				}
+				if !keep {
+					continue
+				}
 			}
 
 			w.Write(spaceBytes)
