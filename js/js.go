@@ -267,7 +267,7 @@ func (m *jsMinifier) minifyStmt(i js.IStmt) {
 		m.minifyExpr(stmt.Init, js.OpExpr)
 		m.write(closeParenOpenBracketBytes)
 		m.needsSemicolon = false
-		for i, _ := range stmt.List {
+		for i := range stmt.List {
 			stmt.List[i].List = optimizeStmtList(stmt.List[i].List, defaultBlock)
 		}
 		m.renamer.renameScope(stmt.Scope)
@@ -1194,10 +1194,6 @@ func (m *jsMinifier) minifyExpr(i js.IExpr, prec js.OpPrec) {
 		m.write(newTargetBytes)
 		m.writeSpaceBeforeIdent()
 	case *js.ImportMetaExpr:
-		if m.expectExpr == expectExprStmt {
-			m.write(openParenBytes)
-			m.groupedStmt = true
-		}
 		m.write(importMetaBytes)
 		m.writeSpaceBeforeIdent()
 	case *js.YieldExpr:
@@ -1236,15 +1232,34 @@ func (m *jsMinifier) minifyExpr(i js.IExpr, prec js.OpPrec) {
 			} else if bytes.Equal(v.Data, NumberBytes) {
 				// Number(x) => +x
 				if len(expr.Args.List) == 1 {
-					if js.OpUnary < prec {
-						m.write(openParenBytes)
+					if lit, ok := expr.Args.List[0].Value.(*js.LiteralExpr); ok && lit.TokenType == js.TrueToken {
+						m.write(oneBytes)
+						break
+					} else if ok && (lit.TokenType == js.FalseToken || lit.TokenType == js.NullToken) {
+						m.write(zeroBytes)
+						break
+					} else if ok && lit.TokenType == js.DecimalToken {
+						m.minifyExpr(lit, prec)
+						break
+					} else if ok && (lit.TokenType == js.IntegerToken || lit.TokenType == js.BinaryToken || lit.TokenType == js.OctalToken || lit.TokenType == js.HexadecimalToken) {
+						if lit.Data[len(lit.Data)-1] == 'n' {
+							lit.Data = lit.Data[:len(lit.Data)-1]
+						}
+						m.minifyExpr(lit, prec)
+						break
+					} else if v, ok := expr.Args.List[0].Value.(*js.Var); ok && v.Decl == js.NoDecl && bytes.Equal(v.Data, undefinedBytes) {
+						m.write(nanBytes)
+						break
+						//} else {
+						//	if js.OpUnary < prec {
+						//		m.write(openParenBytes)
+						//	}
+						//	m.write(plusBytes)
+						//	m.minifyExpr(&js.GroupExpr{expr.Args.List[0].Value}, js.OpUnary)
+						//	if js.OpUnary < prec {
+						//		m.write(closeParenBytes)
+						//	}
 					}
-					m.write(plusBytes)
-					m.minifyExpr(&js.GroupExpr{expr.Args.List[0].Value}, js.OpUnary)
-					if js.OpUnary < prec {
-						m.write(closeParenBytes)
-					}
-					break
 				}
 			}
 		} else if dot, ok := expr.X.(*js.DotExpr); ok {

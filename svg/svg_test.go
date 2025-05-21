@@ -61,6 +61,9 @@ func TestSVG(t *testing.T) {
 		{`<foreignObject>`, `<foreignObject>`},
 		{`<foreignObject/>  text`, `<foreignObject/>text`},
 		{`<foreignObject><foreignObject/></foreignObject>  text`, `<foreignObject><foreignObject/></foreignObject>text`},
+		{`<xyz:rect width="100%" height="100%" fill="green"/>`, ``},
+		{`<svg:rect width="100%" height="100%" fill="green"/>`, `<rect width="100%" height="100%" fill="green"/>`},
+		{`<xlink:rect xlink:width="100%"/>`, `<xlink:rect xlink:width="100%"/>`},
 
 		// from SVGO
 		{`<!DOCTYPE bla><?xml?><!-- comment --><metadata/>`, ``},
