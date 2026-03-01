@@ -65,7 +65,6 @@ func TestSVG(t *testing.T) {
 		{`<svg:rect width="100%" height="100%" fill="green"/>`, `<rect width="100%" height="100%" fill="green"/>`},
 		{`<xlink:rect xlink:width="100%"/>`, `<xlink:rect xlink:width="100%"/>`},
 
-		// from SVGO
 		{`<!DOCTYPE bla><?xml?><!-- comment --><metadata/>`, ``},
 
 		{`<polygon points="-0.1,"/>`, `<polygon points="-0.1,"/>`},                                   // #45
