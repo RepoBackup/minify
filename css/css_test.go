@@ -20,7 +20,7 @@ func TestCSS(t *testing.T) {
 		{"/*! bang  comment */", "/*!bang comment*/"},
 		{"/*# sourceMappingURL=url */", ""},
 		{"a;", "a"},
-		{"i{}/*! bang  comment */", "i{}/*!bang comment*/"},
+		{"i{a:b;}/*! bang  comment */", "i{a:b}/*!bang comment*/"},
 		{"i { key: value; key2: value; }", "i{key:value;key2:value}"},
 		{".cla .ss > #id { x:y; }", ".cla .ss>#id{x:y}"},
 		{".cla[id ^= L] { x:y; }", ".cla[id^=L]{x:y}"},
@@ -36,15 +36,16 @@ func TestCSS(t *testing.T) {
 		{"input[type=\"radio\" i]{x:y}", "input[type=radio i]{x:y}"},
 		{"DIV{margin:1em}", "div{margin:1em}"},
 		{".CLASS{margin:1em}", ".CLASS{margin:1em}"},
-		{"@MEDIA all{}", "@media all{}"},
-		{"@media only screen and (max-width : 800px){}", "@media only screen and (max-width:800px){}"},
-		{"@media (-webkit-min-device-pixel-ratio:1.5),(min-resolution:1.5dppx){}", "@media(-webkit-min-device-pixel-ratio:1.5),(min-resolution:1.5dppx){}"},
+		{"@MEDIA all{a:b}", "@media all{a:b}"},
+		{"@media only screen and (max-width : 800px){a:b}", "@media only screen and (max-width:800px){a:b}"},
+		{"@media (-webkit-min-device-pixel-ratio:1.5),(min-resolution:1.5dppx){a:b}", "@media(-webkit-min-device-pixel-ratio:1.5),(min-resolution:1.5dppx){a:b}"},
 		{"[class^=icon-] i[class^=icon-],i[class*=\" icon-\"]{x:y}", "[class^=icon-] i[class^=icon-],i[class*=\" icon-\"]{x:y}"},
 		{"html{line-height:1;}html{line-height:1;}", "html{line-height:1}html{line-height:1}"},
 		{"a { b: 1", "a{b:1}"},
 		{"@unknown { border:1px solid #000 }", "@unknown{border:1px solid #000 }"},
 		{":root { --custom-variable:0px; }", ":root{--custom-variable:0px}"},
 		{"a, b, c {color:red}", "a,b,c{color:red}"},
+		{"a, b, c { /* lala */ }", ""},
 
 		// recurring property overwrites previous
 		//{"a{color:blue;color:red}", "a{color:red}"},
@@ -54,7 +55,7 @@ func TestCSS(t *testing.T) {
 		//{"a{color:blue}a{color:red}", "a{color:blue}a{color:red}"}, // not supported
 
 		// case sensitivity
-		{"@counter-style Ident{}", "@counter-style Ident{}"},
+		{"@counter-style Ident{a:b}", "@counter-style Ident{a:b}"},
 
 		// coverage
 		{"a, b + c { x:y; }", "a,b+c{x:y}"},
@@ -65,7 +66,7 @@ func TestCSS(t *testing.T) {
 		{".clearfix { order:4; *zoom: 1px; color:red; }", ".clearfix{order:4;*zoom:1px;color:red}"},
 
 		// go-fuzz
-		{"input[type=\"\x00\"] {  a: b\n}.a{}", "input[type=\"\x00\"]{a:b}.a{}"},
+		{"input[type=\"\x00\"] {  a: b\n}.a{b:c}", "input[type=\"\x00\"]{a:b}.a{b:c}"},
 		{"a{a:)'''", "a{a:)'''}"},
 		{"{T:l(", "{t:l()}"},
 		{"{background:0 0 0", "{background:0 0}"},
@@ -80,8 +81,8 @@ func TestCSS(t *testing.T) {
 		{"a{@media screen and (min-width:1024px){ width: 40%; } & h1 { font-size: clamp(2.5rem, 1rem + 3vw, 3.5rem)}}", "a{@media screen and (min-width:1024px){width: 40%;}& h1{font-size:clamp(2.5rem,1rem + 3vw,3.5rem)}}"},           // #602
 		{"a{padding:calc(var(--dce-edge-xsmall,6px) - 2px) calc(var(--dce-button-horizontal-padding,18px) - 2px)}", "a{padding:calc(var(--dce-edge-xsmall,6px) - 2px)calc(var(--dce-button-horizontal-padding,18px) - 2px)}"},            // #673
 		{"a{border-color:var(--dce-brand-color,#01A982)var(--dce-brand-color,#01A982)var(--dce-border-weak,#0000001F)}", "a{border-color:var(--dce-brand-color,#01A982)var(--dce-brand-color,#01A982)var(--dce-border-weak,#0000001F)}"}, // #673
-		{"a{& :is(b) { } }", "a{& :is(b){}}"},             // #908
-		{"a{&:is(b) :is(c) { } }", "a{&:is(b) :is(c){}}"}, // #908
+		{"a{& :is(b) {c:d;} }", "a{& :is(b){c:d}}"},             // #908
+		{"a{&:is(b) :is(c) {d:e;} }", "a{&:is(b) :is(c){d:e}}"}, // #908
 	}
 
 	m := minify.New()
@@ -485,7 +486,7 @@ func TestWriterErrors(t *testing.T) {
 		n   []int
 	}{
 		{`@import 'file'`, []int{0, 2}},
-		{`@media all{}`, []int{0, 2, 3, 4}},
+		{`@media all{a:b}`, []int{0, 2, 3, 4}},
 		{`a[id^="L"]{margin:2in!important;color:red}`, []int{0, 4, 6, 7, 8, 9, 10, 11}},
 		{`a{color:rgb(255,0,0)}`, []int{4}},
 		{`a{color:rgb(255,255,255)}`, []int{4}},
